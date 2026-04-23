@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netease &rarr; Spotify Migration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #111113;
+      color: #d1d1d1;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111113; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    .page-width { max-width: 1280px; margin: 0 auto; padding: 0 80px; }
+
+    /* Navbar */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(17,17,19,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      height: 60px; display: flex; align-items: center;
+    }
+    .navbar-inner { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    @keyframes glow-drift { 0%,100%{opacity:0.35;transform:translateX(-50%) scale(1)} 50%{opacity:0.55;transform:translateX(-50%) scale(1.08)} }
+
+    /* Buttons */
+    .primary-btn {
+      background: #8b5cf6; color: #fff;
+      padding: 10px 22px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+      transition: all 150ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .primary-btn:hover:not(:disabled) { background: #7c3aed; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(139,92,246,0.35); }
+    .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .secondary-btn {
+      background: transparent; color: #8a8a8a;
+      padding: 10px 28px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      font-family: inherit;
+      transition: all 150ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .secondary-btn:hover:not(:disabled) { background: rgba(255,255,255,0.04); color: #d1d1d1; }
+    .secondary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Tabs */
+    .tab-btn {
+      padding: 7px 18px; border-radius: 9999px; border: none;
+      font-size: 13px; cursor: pointer; font-family: inherit;
+      transition: all 150ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .tab-btn.active { background: #8b5cf6; color: #fff; font-weight: 500; }
+    .tab-btn:not(.active) { background: transparent; color: #555; font-weight: 400; border: 1px solid rgba(255,255,255,0.07); }
+    .tab-btn:not(.active):hover { color: #d1d1d1; border-color: rgba(255,255,255,0.15); }
+
+    .song-row { transition: background 120ms ease; }
+    .song-row:hover { background: #1a1a1c !important; }
+
+    /* Step row */
+    .step-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      align-items: center;
+      gap: 24px;
+      padding: 28px 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 150ms ease;
+    }
+    .step-row:last-child { border-bottom: none; }
+    .step-row:hover { background: rgba(255,255,255,0.02); }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <div class="page-width navbar-inner">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:16px;">&#127925;</div>
+      <span style="color:#fff;font-size:15px;font-weight:600;letter-spacing:-0.2px;">Netease &rarr; Spotify</span>
+    </div>
+    <div id="nav-run-indicator" style="display:none;align-items:center;gap:8px;">
+      <div style="width:6px;height:6px;border-radius:9999px;background:#8b5cf6;animation:pulse 1s ease-in-out infinite;"></div>
+      <span style="color:#8a8a8a;font-size:13px;">Running...</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div style="position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-80px;left:50%;width:800px;height:480px;border-radius:9999px;background:radial-gradient(ellipse,rgba(139,92,246,0.1) 0%,transparent 68%);pointer-events:none;animation:glow-drift 8s ease-in-out infinite;transform:translateX(-50%);"></div>
+
+  <div class="page-width" style="padding-top:80px;padding-bottom:72px;">
+    <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(139,92,246,0.09);border:1px solid rgba(139,92,246,0.2);border-radius:9999px;padding:4px 12px;margin-bottom:20px;">
+      <span style="width:5px;height:5px;border-radius:9999px;background:#8b5cf6;display:inline-block;flex-shrink:0;"></span>
+      <span style="color:#a78bfa;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Migration Tool</span>
+    </div>
+
+    <h1 style="color:#fff;font-size:52px;font-weight:700;line-height:1.08;letter-spacing:-2px;margin-bottom:16px;">
+      Move your music<br>
+      <span style="color:#8b5cf6;">without losing a beat.</span>
+    </h1>
+    <p style="color:#666;font-size:16px;line-height:1.7;max-width:480px;margin-bottom:56px;">
+      Migrate your Netease liked songs to Spotify &mdash; auto-matched by similarity, in three steps.
+    </p>
+
+    <!-- Stats — no cards, just numbers -->
+    <div id="stats-row" style="display:flex;gap:56px;flex-wrap:wrap;">
+      <div class="stat-item" data-key="netease_count" data-label="Netease Songs" data-color="#8b5cf6"></div>
+      <div class="stat-item" data-key="matched_count" data-label="Auto Matched" data-color="#10B981"></div>
+      <div class="stat-item" data-key="review_count" data-label="Needs Review" data-color="#F59E0B"></div>
+      <div class="stat-item" data-key="not_found_count" data-label="Not Found" data-color="#EF4444"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<main class="page-width" style="padding-bottom:96px;">
+
+  <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:48px;margin-bottom:48px;">
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:32px;">
+      <div>
+        <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:8px;">How it works</p>
+        <h2 style="color:#fff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">Migration Steps</h2>
+      </div>
+      <button id="btn-all" class="secondary-btn" onclick="runPhase('all')">
+        &#9654;&nbsp; Run Full Migration
+      </button>
+    </div>
+
+    <!-- Steps — single bordered container -->
+    <div style="border:1px solid rgba(255,255,255,0.07);border-radius:16px;overflow:hidden;">
+
+      <div class="step-row">
+        <div style="width:40px;height:40px;border-radius:9999px;background:rgba(139,92,246,0.1);color:#8b5cf6;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;">1</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <span style="color:#fff;font-size:15px;font-weight:600;">Export Netease</span>
+            <span id="step1-badge" style="display:none;background:rgba(16,185,129,0.1);color:#10B981;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:500;">Done</span>
+          </div>
+          <p style="color:#555;font-size:13px;line-height:1.5;">Fetch your liked songs from Netease Music and save to a local checkpoint file.</p>
+        </div>
+        <button id="btn-export" class="primary-btn" onclick="runPhase('export')">Run Export</button>
+      </div>
+
+      <div class="step-row">
+        <div style="width:40px;height:40px;border-radius:9999px;background:rgba(139,92,246,0.1);color:#8b5cf6;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;">2</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <span style="color:#fff;font-size:15px;font-weight:600;">Match on Spotify</span>
+            <span id="step2-badge" style="display:none;background:rgba(16,185,129,0.1);color:#10B981;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:500;">Done</span>
+          </div>
+          <p style="color:#555;font-size:13px;line-height:1.5;">Search Spotify for each track and auto-match by similarity. Low-confidence results are flagged for manual review.</p>
+        </div>
+        <button id="btn-match" class="primary-btn" onclick="runPhase('match')">Run Matching</button>
+      </div>
+
+      <div class="step-row">
+        <div style="width:40px;height:40px;border-radius:9999px;background:rgba(139,92,246,0.1);color:#8b5cf6;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;">3</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <span style="color:#fff;font-size:15px;font-weight:600;">Save to Spotify</span>
+            <span id="step3-badge" style="display:none;background:rgba(16,185,129,0.1);color:#10B981;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:500;">Done</span>
+          </div>
+          <p style="color:#555;font-size:13px;line-height:1.5;">Batch-add all matched songs to your Spotify Liked Songs library in one go.</p>
+        </div>
+        <button id="btn-save" class="primary-btn" onclick="runPhase('save')">Save to Spotify</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Live Log ── -->
+  <div id="log-section" style="display:none;margin-bottom:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:8px;">Output</p>
+        <h2 style="color:#fff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">Live Log</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="log-spinner" style="width:7px;height:7px;border-radius:9999px;background:#8b5cf6;animation:pulse 1s ease-in-out infinite;"></div>
+        <span id="log-status-text" style="color:#8a8a8a;font-size:13px;">Running...</span>
+      </div>
+    </div>
+    <div id="log-box" style="
+      background:#0d0d0f;border-radius:12px;padding:24px 28px;
+      height:300px;overflow-y:auto;
+      font-family:'SF Mono',Monaco,Consolas,'Courier New',monospace;
+      font-size:13px;line-height:1.75;
+      border:1px solid rgba(255,255,255,0.05);">
+    </div>
+  </div>
+
+  <!-- ── Songs Browser ── -->
+  <div id="songs-section" style="display:none;">
+    <div style="margin-bottom:20px;">
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:8px;">Results</p>
+      <h2 style="color:#fff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">Browse Songs</h2>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;">
+        <button id="tab-matched" class="tab-btn active" onclick="showTab('matched')">&#10003; Matched</button>
+        <button id="tab-review" class="tab-btn" onclick="showTab('review')">? Review</button>
+        <button id="tab-not_found" class="tab-btn" onclick="showTab('not_found')">&#10007; Not Found</button>
+      </div>
+      <input id="search-input" oninput="filterSongs()" placeholder="Search song or artist..." style="
+        background:transparent;color:#fff;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:10px;padding:9px 16px;font-size:13px;width:260px;
+        outline:none;transition:all 150ms ease;font-family:inherit;"
+        onfocus="this.style.borderColor='rgba(139,92,246,0.5)';this.style.background='rgba(139,92,246,0.04)'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='transparent'" />
+    </div>
+
+    <div style="border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 80px;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:#0f0f11;">
+        <span style="color:#444;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">Netease Title</span>
+        <span style="color:#444;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">Spotify Match</span>
+        <span style="color:#444;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">Artist</span>
+        <span style="color:#444;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;text-align:right;">Score</span>
+      </div>
+      <div id="songs-list" style="max-height:520px;overflow-y:auto;"></div>
+      <div id="songs-empty" style="padding:56px;text-align:center;color:#444;font-size:14px;display:none;">No data yet &mdash; run the migration steps above to get started</div>
+    </div>
+
+    <div id="pagination" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px;"></div>
+  </div>
+
+</main>
+
+<script>
+let statusData = {};
+let currentTab = 'matched';
+let allSongs = [], filteredSongs = [];
+let currentPage = 1;
+const PAGE_SIZE = 50;
+let currentEventSource = null;
+let songsLoaded = false;   // Bug fix #3: prevent infinite loadSongs on empty tabs
+let runFinished = false;   // Bug fix #2: prevent onerror overwriting success state
+let currentPhase = null;   // Bug fix #4: track phase for step3-badge
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderStatItems();
+  // Bug fix #4: restore step3-badge from localStorage
+  if (localStorage.getItem('migration_saved')) {
+    document.getElementById('step3-badge').style.display = 'inline-block';
+  }
+  refreshStatus();
+  setInterval(refreshStatus, 5000);
+});
+
+function renderStatItems() {
+  document.querySelectorAll('.stat-item').forEach(function(el) {
+    const key   = el.dataset.key;
+    const label = el.dataset.label;
+    const color = el.dataset.color;
+    el.innerHTML =
+      '<div id="stat-' + key + '" style="color:#fff;font-size:44px;font-weight:700;line-height:1;letter-spacing:-1.5px;margin-bottom:6px;">&mdash;</div>'
+      + '<div style="font-size:13px;color:#555;">' + label + '</div>';
+  });
+}
+
+async function refreshStatus() {
+  try {
+    const res = await fetch('/api/status');
+    statusData = await res.json();
+    ['netease_count','matched_count','review_count','not_found_count'].forEach(function(k) {
+      const el = document.getElementById('stat-' + k);
+      if (el) el.textContent = statusData[k] != null ? statusData[k] : '\u2014';
+    });
+    if (statusData.has_netease) document.getElementById('step1-badge').style.display = 'inline-block';
+    if (statusData.matched_count > 0 || statusData.review_count > 0 || statusData.not_found_count > 0)
+      document.getElementById('step2-badge').style.display = 'inline-block';
+
+    const hasSongs = statusData.matched_count > 0 || statusData.review_count > 0 || statusData.not_found_count > 0;
+    if (hasSongs) {
+      document.getElementById('songs-section').style.display = 'block';
+      // Bug fix #3: use songsLoaded flag instead of allSongs.length so empty-tab
+      // polls don't hammer the API every 5 s
+      if (!songsLoaded) { songsLoaded = true; loadSongs(currentTab); }
+    }
+    setButtonsDisabled(statusData.is_running);
+    document.getElementById('nav-run-indicator').style.display = statusData.is_running ? 'flex' : 'none';
+  } catch(e) { console.error('Status:', e); }
+}
+
+async function runPhase(phase) {
+  if (statusData.is_running) return;
+  currentPhase = phase;          // Bug fix #4: track which phase is running
+  runFinished = false;           // Bug fix #2: reset guard
+  const logSection = document.getElementById('log-section');
+  logSection.style.display = 'block';
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('log-spinner').style.display = 'block';
+  const st = document.getElementById('log-status-text');
+  st.textContent = 'Running...'; st.style.color = '#8a8a8a';
+  setButtonsDisabled(true);
+  statusData.is_running = true;
+  document.getElementById('nav-run-indicator').style.display = 'flex';
+  setTimeout(function(){ logSection.scrollIntoView({behavior:'smooth',block:'start'}); }, 100);
+  if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
+  try {
+    const r = await fetch('/api/run/' + phase, {method:'POST'});
+    if (!r.ok) { const e = await r.json(); appendLog(document.getElementById('log-box'), 'Error: '+(e.error||'?'), 'error'); finishRun(false); return; }
+    const {run_id} = await r.json();
+    currentEventSource = new EventSource('/api/stream/' + run_id);
+    currentEventSource.onmessage = function(e) {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'done') {
+        // Bug fix #2: mark finished BEFORE closing so onerror guard works
+        runFinished = true;
+        currentEventSource.close(); currentEventSource = null;
+        finishRun(msg.status === 'done');
+        refreshStatus();
+        setTimeout(function(){ songsLoaded = false; loadSongs(currentTab); }, 500);
+        return;
+      }
+      if (msg.type !== 'heartbeat') appendLog(document.getElementById('log-box'), msg.text, msg.type);
+    };
+    // Bug fix #2: only call finishRun(false) if the run hasn't already finished
+    currentEventSource.onerror = function() {
+      if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
+      if (!runFinished) finishRun(false);
+    };
+  } catch(err) { appendLog(document.getElementById('log-box'), 'Network error: '+err.message, 'error'); finishRun(false); }
+}
+
+function appendLog(box, text, type) {
+  const colors = {log:'#d1d1d1',success:'#10B981',error:'#EF4444',warning:'#F59E0B'};
+  const d = document.createElement('div');
+  d.style.color = colors[type]||'#d1d1d1'; d.style.marginBottom='2px'; d.style.wordBreak='break-word';
+  d.textContent = text; box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+
+function finishRun(success) {
+  setButtonsDisabled(false); statusData.is_running = false;
+  document.getElementById('log-spinner').style.display = 'none';
+  document.getElementById('nav-run-indicator').style.display = 'none';
+  const st = document.getElementById('log-status-text');
+  st.textContent = success ? 'Completed' : 'Failed';
+  st.style.color  = success ? '#10B981' : '#EF4444';
+  // Bug fix #4: show step3-badge and persist when save/all succeeds
+  if (success && (currentPhase === 'save' || currentPhase === 'all')) {
+    localStorage.setItem('migration_saved', '1');
+    document.getElementById('step3-badge').style.display = 'inline-block';
+  }
+}
+
+function setButtonsDisabled(d) {
+  document.querySelectorAll('.primary-btn,.secondary-btn').forEach(function(b){ b.disabled = d; });
+}
+
+async function loadSongs(cat) {
+  try { const r = await fetch('/api/songs/'+cat); allSongs = await r.json(); } catch(e){ allSongs=[]; }
+  filteredSongs = allSongs; currentPage = 1;
+  document.getElementById('search-input').value = '';
+  renderSongs();
+}
+
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.id.replace('tab-','') === tab ? b.classList.add('active') : b.classList.remove('active');
+  });
+  loadSongs(tab);
+}
+
+function filterSongs() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  filteredSongs = !q ? allSongs : allSongs.filter(function(s){
+    return (s.netease_name||s.name||'').toLowerCase().includes(q)
+        || (s.netease_artist||(s.artists&&s.artists[0])||'').toLowerCase().includes(q)
+        || (s.spotify_name||'').toLowerCase().includes(q)
+        || (s.spotify_artist||'').toLowerCase().includes(q);
+  });
+  currentPage = 1; renderSongs();
+}
+
+function renderSongs() {
+  const list = document.getElementById('songs-list');
+  const empty = document.getElementById('songs-empty');
+  const total = filteredSongs.length;
+  if (total === 0) { list.innerHTML=''; empty.style.display='block'; document.getElementById('pagination').innerHTML=''; return; }
+  empty.style.display = 'none';
+  const page = filteredSongs.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  list.innerHTML = page.map(function(s, i) {
+    const ne = s.netease_name||s.name||'\u2014';
+    const na = s.netease_artist||(s.artists&&s.artists[0])||'\u2014';
+    const sp = s.spotify_name||'\u2014';
+    const sa = s.spotify_artist||'';
+    const sc = s.score;
+    var fc,bg2;
+    if(sc>=85){fc='#10B981';bg2='rgba(16,185,129,0.1)';}
+    else if(sc>=60){fc='#F59E0B';bg2='rgba(245,158,11,0.1)';}
+    else if(sc!=null){fc='#EF4444';bg2='rgba(239,68,68,0.1)';}
+    else{fc='#444';bg2='transparent';}
+    const rb = i%2===0 ? '#111113' : '#131315';
+    return '<div class="song-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 80px;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.03);background:'+rb+';align-items:center;">'
+      +'<div style="overflow:hidden;padding-right:12px;"><div style="color:#e0e0e0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(ne)+'</div></div>'
+      +'<div style="overflow:hidden;padding-right:12px;"><div style="color:#aaa;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(sp)+'</div></div>'
+      +'<div style="overflow:hidden;padding-right:12px;"><div style="color:#555;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(na)+(sa&&sa!==na?' \u2192 '+esc(sa):'')+'</div></div>'
+      +'<div style="text-align:right;">'+(sc!=null?'<span style="color:'+fc+';background:'+bg2+';padding:2px 9px;border-radius:9999px;font-size:11px;font-weight:500;">'+sc+'</span>':'<span style="color:#333">\u2014</span>')+'</div>'
+      +'</div>';
+  }).join('');
+  renderPagination(total);
+}
+
+function renderPagination(total) {
+  const tp = Math.ceil(total/PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  if (tp<=1){ pag.innerHTML=''; return; }
+  var h='';
+  for(var p=1;p<=tp;p++){
+    var a=p===currentPage;
+    // Bug fix #5: removed duplicate border:none (overridden immediately by border:1px solid below)
+    h+='<button onclick="goPage('+p+')" style="border-radius:8px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;transition:all 150ms ease;background:'+(a?'#8b5cf6':'transparent')+';color:'+(a?'#fff':'#555')+';border:1px solid '+(a?'transparent':'rgba(255,255,255,0.07)')+';">'+p+'</button>';
+  }
+  h+='<span style="color:#444;font-size:12px;margin-left:8px;">'+total+' songs</span>';
+  pag.innerHTML=h;
+}
+
+function goPage(p){ currentPage=p; renderSongs(); document.getElementById('songs-section').scrollIntoView({behavior:'smooth'}); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
